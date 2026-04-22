@@ -10,6 +10,12 @@ export async function simulate(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  // Validate network parameter
+  if (network && network !== "mainnet" && network !== "testnet") {
+    res.status(400).json({ error: "Invalid network. Use 'testnet' or 'mainnet'" });
+    return;
+  }
+
   const net: Network = network === "mainnet" ? "mainnet" : "testnet";
 
   try {
