@@ -49,89 +49,9 @@ async function checkContractExists(
   }
 }
 
-/**
- * Extract required signers from auth entries in a simulation response
- * @param auth - The auth array from SorobanRpc.Api.SimulateTransactionResponse
- * @returns Object containing requiredSigners array and threshold number
- */
-function extractRequiredSigners(
-  auth: StellarSdk.xdr.SorobanAuthorization[] | undefined,
-): { requiredSigners: string[]; threshold: number } {
-  if (!auth || auth.length === 0) {
-    return { requiredSigners: [], threshold: 0 };
-  }
-
-  const signers: string[] = [];
-  let maxThreshold = 0;
-
-  for (const authEntry of auth) {
-    // Extract address from auth entry
-    let address: string | null = null;
-
-    // Handle different auth types
-    if (
-      StellarSdk.xdr.SorobanAuthorizationType.account() === authEntry.authType()
-    ) {
-      // Account auth - contains account address
-      const accountAuth = authEntry.account();
-      if (accountAuth) {
-        address = StellarSdk.xdr.ScAddress.toXDR(
-          accountAuth.address(),
-          "base64",
-        );
-        // Convert base64 ScAddress back to string account ID
-        try {
-          const scAddr = StellarSdk.xdr.ScAddress.fromXDR(address, "base64");
-          const accountId = scAddr.accountId();
-          address = StellarSdk.StrKey.encodeEd25519PublicKey(
-            accountId.ed25519().toRawBytes(),
-          );
-        } catch (e) {
-          // Fallback to using the address directly if conversion fails
-          address = accountAuth.address().toString();
-        }
-      }
-    } else if (
-      StellarSdk.xdr.SorobanAuthorizationType.contract() ===
-      authEntry.authType()
-    ) {
-      // Contract auth - contains contract address
-      const contractAuth = authEntry.contract();
-      if (contractAuth) {
-        address = StellarSdk.xdr.ScAddress.toXDR(
-          contractAuth.address(),
-          "base64",
-        );
-        // Convert base64 ScAddress back to string contract ID
-        try {
-          const scAddr = StellarSdk.xdr.ScAddress.fromXDR(address, "base64");
-          // For contract addresses, we'll keep them as is for now
-          address = scAddr.toString();
-        } catch (e) {
-          // Fallback to using the address directly if conversion fails
-          address = contractAuth.address().toString();
-        }
-      }
-    }
-
-    if (address) {
-      signers.push(address);
-    }
-
-    // Track the highest threshold encountered
-    const threshold = authEntry.auth().threshold() ?? 0;
-    if (threshold > maxThreshold) {
-      maxThreshold = threshold;
-    }
-  }
-
-  // Remove duplicates while preserving order
-  const uniqueSigners = [...new Set(signers)];
-
-  return {
-    requiredSigners: uniqueSigners,
-    threshold: maxThreshold,
-  };
+export interface TtlInfo {
+  liveUntilLedger: number;
+  expiresInLedgers: number;
 }
 
 export interface SimulateResult {
@@ -158,10 +78,6 @@ export interface SimulateResult {
   error?: string;
   /** Contract ID that was not found (if error is "Contract not found") */
   contractId?: string;
-  /** Required signers for multi-signature transactions */
-  requiredSigners?: string[];
-  /** Threshold for multi-signature transactions */
-  threshold?: number;
   raw?: StellarSdk.SorobanRpc.Api.SimulateTransactionResponse;
 }
 
