@@ -6,9 +6,14 @@ import { footprintDiff } from "../services/footprintDiff";
 import metrics from "../middleware/metrics";
 import { validateXdr, type XdrInputType } from "../services/validator";
 import { recordFailure } from "../middleware/bruteForce";
+import * as StellarSdk from "@stellar/stellar-sdk";
 
 export async function simulate(req: Request, res: Response): Promise<void> {
-  const { xdr, network } = req.body as { xdr?: string; network?: Network };
+  const { xdr, network, dryRun } = req.body as {
+    xdr?: string;
+    network?: Network;
+    dryRun?: boolean;
+  };
 
   if (!xdr) {
     recordFailure(req.ip || req.socket.remoteAddress || "unknown");
@@ -26,6 +31,33 @@ export async function simulate(req: Request, res: Response): Promise<void> {
   }
 
   const net: Network = network === "mainnet" ? "mainnet" : "testnet";
+
+  // Dry-run: parse XDR locally, skip RPC
+  if (dryRun) {
+    try {
+      const passphrase =
+        net === "mainnet"
+          ? StellarSdk.Networks.PUBLIC
+          : StellarSdk.Networks.TESTNET;
+      const tx = StellarSdk.TransactionBuilder.fromXDR(xdr, passphrase);
+      const ops =
+        tx instanceof StellarSdk.FeeBumpTransaction
+          ? tx.innerTransaction.operations
+          : tx.operations;
+      res.status(200).json({
+        valid: true,
+        operationCount: ops.length,
+        operationType: ops[0]?.type ?? "unknown",
+        network: net,
+      });
+    } catch (err: unknown) {
+      res.status(400).json({
+        valid: false,
+        error: err instanceof Error ? err.message : "Failed to parse XDR",
+      });
+    }
+    return;
+  }
 
   // Track active simulations
   metrics.incrementActiveSimulations();
