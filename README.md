@@ -706,29 +706,7 @@ export default router;
 
 ## 🔍 Understanding Footprints
 
-### What is a Footprint?
-
-A footprint declares which ledger entries a transaction will access:
-
-- **Read-Only:** Entries the transaction reads but doesn't modify
-- **Read-Write:** Entries the transaction modifies
-
-### Why Optimize?
-
-- Smaller footprints = lower resource fees
-- Unnecessary entries waste user funds
-- This service helps identify and remove redundant entries
-
-### Example Scenario: Voting DApp
-
-1. User clicks "Vote" in your React app
-2. Frontend builds unsigned transaction XDR
-3. Frontend sends XDR to this service
-4. Service simulates and returns optimized footprint
-5. Frontend assembles final transaction with footprint
-6. User signs and submits to network
-
----
+For a beginner-friendly guide explaining what Soroban footprints are, why they are required, and how this service simplifies the process, see [Understanding Soroban Footprints](./docs/guides/understanding-footprints.md).
 
 ## 🧩 Integration Guide
 
