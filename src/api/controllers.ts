@@ -11,6 +11,7 @@ import { getNetworkStatus } from "../services/networkStatus";
 import { estimateFee } from "../services/feeEstimator";
 import metrics from "../middleware/metrics";
 <<<<<<< ours
+<<<<<<< ours
 import { AppError } from "../utils/AppError";
 <<<<<<< ours
 <<<<<<< ours
@@ -50,6 +51,9 @@ import { version } from "../../package.json";
 import { version } from "../../package.json";
 =======
 import { version } from "../../package.json";
+=======
+import { ResponseEnvelope } from "../types";
+>>>>>>> theirs
 =======
 import { ResponseEnvelope } from "../types";
 >>>>>>> theirs
@@ -171,7 +175,12 @@ export async function simulate(req: Request, res: Response): Promise<void> {
   const { xdr, network } = req.body as { xdr?: string; network?: Network };
 
   if (!xdr) {
+<<<<<<< ours
     res.status(400).json({ error: "Missing required field: xdr" });
+>>>>>>> theirs
+=======
+    const response: ResponseEnvelope = { success: false, error: "Missing required field: xdr" };
+    res.status(400).json(response);
 >>>>>>> theirs
     return;
   }
@@ -191,13 +200,19 @@ export async function simulate(req: Request, res: Response): Promise<void> {
   // Validate network parameter
   if (network && network !== "mainnet" && network !== "testnet") {
 <<<<<<< ours
+<<<<<<< ours
+=======
+>>>>>>> theirs
     const response: ResponseEnvelope = {
       success: false,
       error: "Invalid network. Use 'testnet' or 'mainnet'",
     };
     res.status(400).json(response);
+<<<<<<< ours
 =======
     res.status(400).json({ error: "Invalid network. Use 'testnet' or 'mainnet'" });
+>>>>>>> theirs
+=======
 >>>>>>> theirs
     return;
 >>>>>>> theirs
@@ -380,6 +395,7 @@ export async function simulateBatch(
       }
     });
 
+<<<<<<< ours
     const anyHit = results.some((r) => "cacheHit" in r && r.cacheHit);
     const allHit = results.every((r) => "cacheHit" in r && r.cacheHit);
     res.setHeader("X-Cache", allHit ? "HIT" : anyHit ? "PARTIAL" : "MISS");
@@ -392,6 +408,13 @@ export async function simulateBatch(
 >>>>>>> theirs
 =======
 =======
+>>>>>>> theirs
+=======
+    const response: ResponseEnvelope = result.success
+      ? { success: true, data: result }
+      : { success: false, error: result.error };
+
+    res.status(result.success ? 200 : 422).json(response);
 >>>>>>> theirs
   } catch (err: unknown) {
     const message =
@@ -511,6 +534,7 @@ export async function simulateBatch(
     metrics.recordSimulation(net, false);
 
 <<<<<<< ours
+<<<<<<< ours
     if (
       message.toLowerCase().includes("rpc") ||
       message.toLowerCase().includes("connection")
@@ -526,6 +550,10 @@ export async function simulateBatch(
     }
 
     res.status(500).json({ error: message });
+>>>>>>> theirs
+=======
+    const response: ResponseEnvelope = { success: false, error: message };
+    res.status(500).json(response);
 >>>>>>> theirs
   } finally {
     metrics.decrementActiveSimulations();
