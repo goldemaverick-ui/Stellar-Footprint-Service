@@ -7,6 +7,48 @@ import {
 } from "./footprintParser";
 import { optimizeFootprint } from "./optimizer";
 
+// Cache for contract existence checks (contractIdString -> { exists: boolean, timestamp: number })
+const contractExistenceCache = new Map<
+  string,
+  { exists: boolean; timestamp: number }
+>();
+const CONTRACT_EXISTENCE_CACHE_TTL = 30 * 1000; // 30 seconds
+
+/**
+ * Check if a contract exists on the network by looking up its account ledger entry.
+ * Uses caching to avoid repeated RPC calls for the same contract within the TTL.
+ * @param server - The RPC server instance
+ * @param contractIdString - The contract ID in string format (account ID)
+ * @returns True if the contract exists, false otherwise
+ */
+async function checkContractExists(
+  server: StellarSdk.SorobanRpc.Server,
+  contractIdString: string,
+): Promise<boolean> {
+  const now = Date.now();
+  const cached = contractExistenceCache.get(contractIdString);
+  if (cached && now - cached.timestamp < CONTRACT_EXISTENCE_CACHE_TTL) {
+    return cached.exists;
+  }
+
+  try {
+    // Convert contractIdString to LedgerKey for an account
+    const accountId = StellarSdk.xdr.AccountId.fromString(contractIdString);
+    const ledgerKey = StellarSdk.xdr.LedgerKey.account(accountId);
+    const response = await server.getLedgerEntries(ledgerKey);
+    const exists = response.entries && response.entries.length > 0;
+    contractExistenceCache.set(contractIdString, { exists, timestamp: now });
+    return exists;
+  } catch (err) {
+    // If there's an error (e.g., network, invalid ID), assume contract does not exist
+    contractExistenceCache.set(contractIdString, {
+      exists: false,
+      timestamp: now,
+    });
+    return false;
+  }
+}
+
 export interface TtlInfo {
   liveUntilLedger: number;
   expiresInLedgers: number;
@@ -34,6 +76,8 @@ export interface SimulateResult {
     memBytes: string;
   };
   error?: string;
+  /** Contract ID that was not found (if error is "Contract not found") */
+  contractId?: string;
   raw?: StellarSdk.SorobanRpc.Api.SimulateTransactionResponse;
 }
 
